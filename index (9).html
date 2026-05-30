@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casino Royale - Game Master Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            background-color: #07080a;
+            color: #e5e7eb;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Roulette Colors */
+        .color-red { background-color: #ef4444; color: white; }
+        .color-black { background-color: #1f2937; color: white; }
+        .color-green { background-color: #10b981; color: white; box-shadow: 0 0 20px rgba(16,185,129,0.4) inset; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #11141b; }
+        ::-webkit-scrollbar-thumb { background: #2d313a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #374151; }
+
+        /* Animation specific */
+        .slot-container {
+            width: 100%;
+            height: 140px;
+            overflow: hidden;
+            position: relative;
+            background: #0a0c10;
+            border-radius: 16px;
+            border: 1px solid #2d313a;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.9) inset, 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .slot-track {
+            display: flex;
+            position: absolute;
+            height: 100%;
+        }
+
+        .slot-item {
+            width: 120px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 700;
+            border-right: 1px solid rgba(255,255,255,0.05);
+            box-sizing: border-box;
+            flex-shrink: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* Gold Indicators updated to elegant white */
+        .indicator-top {
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 20px solid #ffffff;
+            z-index: 10;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+        }
+
+        .indicator-bottom {
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 20px solid #ffffff;
+            z-index: 10;
+            filter: drop-shadow(0 -4px 6px rgba(0,0,0,0.5));
+        }
+
+        /* Table sticky header fix */
+        .table-container {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-color: #11141b;
+        }
+    </style>
+</head>
+<body class="flex flex-col pt-6 pb-12 w-full px-4 md:px-8 bg-[#07080a]">
+    <div class="max-w-7xl mx-auto w-full">
+        <!-- HEADER -->
+        <header class="flex flex-col md:flex-row items-center justify-between bg-[#11141b] border border-[#2d313a] rounded-2xl p-4 md:px-8 shadow-2xl mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-[#10b981] flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div class="text-left">
+                    <h1 class="text-2xl font-bold tracking-tight text-white uppercase"><span class="text-[#10b981] font-light">Roulette</span> GM PRO</h1>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest font-bold mt-1">Game Master Terminal</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTAINER -->
+        <main class="w-full flex flex-col">
+            
+            <!-- BETTING PHASE -->
+            <div id="betting-phase" class="w-full">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Form -->
+                    <div class="bg-[#11141b] border border-[#2d313a] rounded-2xl p-6 lg:col-span-4 flex flex-col gap-5 h-full">
+                        <div class="flex items-center gap-3 mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#10b981]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <h2 class="text-lg font-semibold text-white">Wette hinzufügen</h2>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="space-y-1.5">
+                                <label for="player-name" class="text-xs font-bold text-gray-500 uppercase block">Spielername</label>
+                                <input type="text" id="player-name" class="w-full bg-[#0a0c10] border border-[#2d313a] rounded-xl px-4 py-3 focus:outline-none focus:border-[#10b981] text-sm text-white" placeholder="z.B. Max Mustermann">
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <label for="bet-amount" class="text-xs font-bold text-gray-500 uppercase block">Einsatzhöhe (€)</label>
+                                <div class="relative">
+                                    <input type="number" id="bet-amount" class="w-full bg-[#0a0c10] border border-[#2d313a] rounded-xl px-4 py-3 focus:outline-none focus:border-[#10b981] text-sm text-white font-mono" placeholder="10.00" min="1" step="1">
+                                </div>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <label for="bet-type" class="text-xs font-bold text-gray-500 uppercase block">Wettart</label>
+                                <select id="bet-type" class="w-full bg-[#0a0c10] border border-[#2d313a] rounded-xl px-4 py-3 focus:outline-none focus:border-[#10b981] text-sm text-white appearance-none cursor-pointer">
+                                    <optgroup label="Einfache Chancen (Quote 2.0)">
+                                        <option value="rot">Rot (Red)</option>
+                                        <option value="schwarz">Schwarz (Black)</option>
+                                        <option value="gerade">Gerade (Even)</option>
+                                        <option value="ungerade">Ungerade (Odd)</option>
+                                    </optgroup>
+                                    <optgroup label="Genaue Zahlen (Quote 36.0)" id="numbers-optgroup">
+                                        <!-- Numbers 0-36 injected by JS -->
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <div class="pt-2">
+                                <button id="add-bet-btn" class="w-full border border-[#10b981]/30 text-[#10b981] font-bold py-3 rounded-xl hover:bg-[#10b981] hover:text-black transition-all flex items-center justify-center gap-2 uppercase text-sm">
+                                    Wette bestätigen
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto pt-6">
+                            <div class="p-4 rounded-xl bg-black/30 border border-dashed border-gray-800">
+                                <p class="text-[11px] text-gray-500 leading-relaxed italic text-center uppercase tracking-tighter">Wetten können nach dem Start der Animation nicht mehr geändert werden.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bets Table -->
+                    <div class="bg-[#11141b] border border-[#2d313a] rounded-2xl lg:col-span-8 flex flex-col overflow-hidden">
+                        <div class="p-6 border-b border-[#2d313a] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <h2 class="text-lg font-semibold text-white flex items-center gap-2">Aktuelle Wetten</h2>
+                            <div class="bg-[#0a0c10] px-4 py-2 rounded-lg border border-[#2d313a]">
+                                <span id="total-bets-badge" class="font-mono text-sm text-[#10b981] font-bold tracking-wide">0 Wetten | 0,00 € im Pot</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex-grow table-container border-b border-[#2d313a]">
+                            <table class="w-full text-left">
+                                <thead class="sticky top-0 bg-[#11141b] shadow-sm">
+                                    <tr class="text-[10px] uppercase text-gray-500 tracking-wider">
+                                        <th class="px-6 py-4 font-bold border-b border-[#2d313a]">Spieler</th>
+                                        <th class="px-6 py-4 font-bold text-center border-b border-[#2d313a]">Wettart</th>
+                                        <th class="px-6 py-4 font-bold text-right border-b border-[#2d313a]">Einsatz</th>
+                                        <th class="px-6 py-4 font-bold text-right border-b border-[#2d313a]">Potenz. Gewinn</th>
+                                        <th class="px-6 py-4 font-bold w-12 border-b border-[#2d313a]"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bets-table-body" class="divide-y divide-[#1e232d]">
+                                    <tr id="empty-state">
+                                        <td colspan="5" class="px-6 py-16 text-center">
+                                            <p class="text-gray-500 text-sm tracking-wide">Noch keine Einsätze getätigt.</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="p-4 bg-[#11141b] mt-auto">
+                            <button id="start-roulette-btn" disabled class="w-full bg-[#0a0c10] border border-[#2d313a] text-gray-600 font-bold py-4 rounded-xl text-sm md:text-lg uppercase tracking-widest transition-all cursor-not-allowed">
+                                Roulette Starten
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SPINNING PHASE -->
+            <div id="spin-phase" class="hidden p-8 md:p-12 flex flex-col items-center justify-center min-h-[500px]">
+                <h2 class="text-4xl font-extrabold text-white mb-16 animate-pulse uppercase tracking-widest drop-shadow-lg">
+                    Das Rad dreht sich...
+                </h2>
+                
+                <div class="w-full relative max-w-5xl mx-auto py-4">
+                    <div class="slot-container w-full relative">
+                        <div class="indicator-top"></div>
+                        <div id="slot-track" class="slot-track">
+                            <!-- Items populated by JS -->
+                        </div>
+                        <div class="indicator-bottom"></div>
+                        
+                        <!-- Overlay gradients to fade edges -->
+                        <div class="absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-gray-900 to-transparent pointer-events-none z-10 hidden sm:block"></div>
+                        <div class="absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-gray-900 to-transparent pointer-events-none z-10 hidden sm:block"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESULT PHASE -->
+            <div id="result-phase" class="hidden p-6 md:p-8 bg-[#11141b] border border-[#2d313a] rounded-2xl w-full">
+                
+                <div id="result-header" class="text-center mb-10 transition-all duration-1000 transform scale-95 opacity-0">
+                    <h2 class="text-2xl text-gray-300 mb-4 font-light tracking-widest uppercase">Die Gewinnerzahl ist</h2>
+                    <div id="winning-number-display" class="mx-auto w-48 h-48 rounded-full flex flex-col items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.15)] border-[6px] border-[#2d313a] text-white relative">
+                        <span id="winning-num" class="text-7xl font-black drop-shadow-md">17</span>
+                        <span id="winning-color-text" class="text-lg uppercase tracking-widest mt-2 font-bold px-3 py-1 bg-black bg-opacity-40 rounded">Schwarz</span>
+                    </div>
+                </div>
+
+                <div class="bg-[#0a0c10] rounded-xl border border-[#2d313a] overflow-hidden max-w-4xl mx-auto transform transition-all">
+                    <div class="flex justify-between items-center p-5 border-b border-[#2d313a]">
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                            Abrechnung der Spieler
+                        </h3>
+                        <span id="bank-result" class="font-mono font-bold px-3 py-1 bg-[#11141b] rounded text-sm text-gray-300 border border-[#2d313a]">Bank Bilanz: 0,00 €</span>
+                    </div>
+                    
+                    <div class="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
+                        <table class="w-full text-left">
+                            <thead class="bg-[#11141b] sticky top-0 z-10 shadow-sm border-b border-[#2d313a]">
+                                <tr class="text-[10px] uppercase text-gray-500 tracking-wider">
+                                    <th class="px-6 py-4 font-bold">Spieler</th>
+                                    <th class="px-6 py-4 font-bold text-center">Wettart</th>
+                                    <th class="px-6 py-4 font-bold text-right">Einsatz</th>
+                                    <th class="px-6 py-4 font-bold text-right">Ergebnis</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-table-body" class="divide-y divide-[#1e232d] bg-[#0a0c10]">
+                                <!-- Results populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-12 text-center">
+                    <button id="new-round-btn" class="bg-[#10b981] hover:bg-emerald-400 text-black font-bold py-4 px-10 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-lg tracking-widest uppercase active:scale-95">
+                        Neue Runde Eröffnen
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        // --- Constants & Data ---
+        const RED_NUMBERS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+        const BLACK_NUMBERS = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35];
+        
+        // Exact European Roulette sequence
+        const ROULETTE_ORDER = [
+            0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 
+            5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
+        ];
+
+        const BET_TYPES = {
+            rot: { label: 'Rot', multiplier: 2, badgeClass: 'bg-[#ef4444] px-3 py-1 rounded text-[10px] font-bold text-white uppercase tracking-wider' },
+            schwarz: { label: 'Schwarz', multiplier: 2, badgeClass: 'bg-black border border-[#2d313a] px-3 py-1 rounded text-[10px] font-bold text-white uppercase tracking-wider' },
+            gerade: { label: 'Gerade', multiplier: 2, badgeClass: 'bg-[#0a0c10] border border-[#2d313a] px-3 py-1 rounded text-[10px] font-bold text-white uppercase tracking-wider' },
+            ungerade: { label: 'Ungerade', multiplier: 2, badgeClass: 'bg-[#0a0c10] border border-[#2d313a] px-3 py-1 rounded text-[10px] font-bold text-white uppercase tracking-wider' }
+        };
+
+        // --- State ---
+        let currentBets = [];
+        let winningNumber = null;
+        let isSpinning = false;
+
+        // --- DOM Elements ---
+        const phases = {
+            betting: document.getElementById('betting-phase'),
+            spin: document.getElementById('spin-phase'),
+            result: document.getElementById('result-phase')
+        };
+        
+        const inputs = {
+            name: document.getElementById('player-name'),
+            amount: document.getElementById('bet-amount'),
+            type: document.getElementById('bet-type'),
+            addBtn: document.getElementById('add-bet-btn')
+        };
+
+        const ui = {
+            tBodyBets: document.getElementById('bets-table-body'),
+            emptyStateRow: document.getElementById('empty-state'),
+            totalBadge: document.getElementById('total-bets-badge'),
+            startBtn: document.getElementById('start-roulette-btn'),
+            slotTrack: document.getElementById('slot-track'),
+            resultsTBody: document.getElementById('results-table-body'),
+            newRoundBtn: document.getElementById('new-round-btn'),
+            winNumDisplay: document.getElementById('winning-number-display'),
+            winNumText: document.getElementById('winning-num'),
+            winColorText: document.getElementById('winning-color-text'),
+            bankResult: document.getElementById('bank-result'),
+            resultHeader: document.getElementById('result-header')
+        };
+
+        // --- Initialization ---
+        function initForm() {
+            const optgroup = document.getElementById('numbers-optgroup');
+            for (let i = 0; i <= 36; i++) {
+                const isRed = RED_NUMBERS.includes(i);
+                const isBlack = BLACK_NUMBERS.includes(i);
+                
+                let colorLabel = 'Grün';
+                let badgeClass = 'bg-[#10b981] px-3 py-1 rounded text-[10px] font-bold text-[#0a0c10] uppercase tracking-wider';
+                
+                if (isRed) { colorLabel = 'Rot'; badgeClass = 'bg-[#ef4444] px-3 py-1 rounded text-[10px] font-bold text-white uppercase tracking-wider'; }
+                else if (isBlack) { colorLabel = 'Schwarz'; badgeClass = 'bg-black border border-[#2d313a] px-3 py-1 rounded text-[10px] font-bold text-white uppercase tracking-wider'; }
+                
+                const option = document.createElement('option');
+                option.value = `num_${i}`;
+                option.textContent = `Zahl ${i} (${colorLabel})`;
+                
+                BET_TYPES[`num_${i}`] = { 
+                    label: `Zahl ${i}`, 
+                    multiplier: 36, 
+                    badgeClass: badgeClass
+                };
+                optgroup.appendChild(option);
+            }
+        }
+
+        // --- Formatters & Helpers ---
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
+        }
+
+        function getColorClass(num) {
+            if (num === 0) return 'color-green';
+            if (RED_NUMBERS.includes(num)) return 'color-red';
+            return 'color-black';
+        }
+        
+        function getColorText(num) {
+            if (num === 0) return 'Grün';
+            if (RED_NUMBERS.includes(num)) return 'Rot';
+            return 'Schwarz';
+        }
+
+        function getRouletteItemElement(num) {
+            const el = document.createElement('div');
+            el.className = `slot-item ${getColorClass(num)}`;
+            el.textContent = num;
+            return el;
+        }
+
+        // --- Logic ---
+        function updatePlayButtonState() {
+            if (currentBets.length > 0) {
+                ui.startBtn.disabled = false;
+                ui.startBtn.className = 'w-full bg-[#10b981] hover:bg-emerald-400 text-black font-bold py-4 rounded-xl text-sm md:text-lg uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 active:scale-95 mt-6';
+            } else {
+                ui.startBtn.disabled = true;
+                ui.startBtn.className = 'w-full bg-[#0a0c10] border border-[#2d313a] text-gray-600 font-bold py-4 rounded-xl text-sm md:text-lg uppercase tracking-widest transition-all cursor-not-allowed mt-6';
+            }
+        }
+
+        function addBet() {
+            const name = inputs.name.value.trim();
+            const amount = parseFloat(inputs.amount.value);
+            const typeValue = inputs.type.value;
+
+            if (!name) {
+                alert('Bitte einen Spielernamen eingeben.');
+                inputs.name.focus();
+                return;
+            }
+            if (isNaN(amount) || amount <= 0) {
+                alert('Bitte einen gültigen, positiven Einsatz eingeben.');
+                inputs.amount.focus();
+                return;
+            }
+
+            // Generate unique ID
+            const betId = 'bet_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+            
+            currentBets.push({
+                id: betId,
+                name: name,
+                amount: amount,
+                type: typeValue,
+                typeConf: BET_TYPES[typeValue]
+            });
+
+            renderBets();
+            
+            // Fast entry reset
+            inputs.amount.value = '';
+            inputs.type.selectedIndex = 0;
+            inputs.name.focus(); // Back to name for next user
+        }
+
+        function removeBet(id) {
+            currentBets = currentBets.filter(b => b.id !== id);
+            renderBets();
+        }
+
+        function renderBets() {
+            ui.tBodyBets.innerHTML = '';
+            
+            if (currentBets.length === 0) {
+                ui.tBodyBets.appendChild(ui.emptyStateRow);
+                ui.totalBadge.textContent = '0 Wetten | 0,00 € im Pot';
+                updatePlayButtonState();
+                return;
+            }
+
+            let totalAmount = 0;
+
+            currentBets.forEach(bet => {
+                totalAmount += bet.amount;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-white/[0.02] transition-colors group';
+                
+                const potentialWin = bet.amount * bet.typeConf.multiplier;
+                tr.innerHTML = `
+                    <td class="px-6 py-4 text-sm font-semibold text-white">${bet.name}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="${bet.typeConf.badgeClass}">
+                            ${bet.typeConf.label}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right font-mono text-white">
+                        ${formatCurrency(bet.amount)}
+                    </td>
+                    <td class="px-6 py-4 text-right font-mono text-[#10b981]">
+                        ${formatCurrency(potentialWin)}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button class="text-gray-500 hover:text-[#ef4444] p-2 rounded-full transition-all opacity-50 group-hover:opacity-100" onclick="removeBet('${bet.id}')" title="Wette Löschen">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>
+                    </td>
+                `;
+                ui.tBodyBets.appendChild(tr);
+            });
+
+            ui.totalBadge.textContent = `${currentBets.length} Wette(n) | ${formatCurrency(totalAmount)} im Pot`;
+            updatePlayButtonState();
+            
+            // Auto scroll to bottom
+            const container = document.querySelector('.table-container');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function startRoulette() {
+            if (currentBets.length === 0 || isSpinning) return;
+            isSpinning = true;
+
+            // Generate Random Winning Number (0-36)
+            winningNumber = Math.floor(Math.random() * 37);
+
+            // UI Transitions
+            phases.betting.classList.add('hidden');
+            phases.spin.classList.remove('hidden');
+            ui.resultHeader.classList.remove('scale-100', 'opacity-100');
+            ui.resultHeader.classList.add('scale-95', 'opacity-0');
+
+            // --- Animation Setup ---
+            ui.slotTrack.innerHTML = '';
+            ui.slotTrack.style.transition = 'none';
+            ui.slotTrack.style.transform = 'translateX(0px)';
+            
+            // Build visual sequence (multiple cycles for long spin)
+            let sequence = [];
+            for (let i = 0; i < 6; i++) {
+                sequence = sequence.concat(ROULETTE_ORDER);
+            }
+            // Add two more exact arrays at the end for final landing zone
+            sequence = sequence.concat(ROULETTE_ORDER);
+            sequence = sequence.concat(ROULETTE_ORDER);
+
+            // Calculate Target Index
+            const indexOfTarget = ROULETTE_ORDER.indexOf(winningNumber);
+            // Land in the second to last sequence block
+            const targetGlobalIndex = (6 * ROULETTE_ORDER.length) + indexOfTarget;
+
+            // Render elements
+            sequence.forEach(num => {
+                ui.slotTrack.appendChild(getRouletteItemElement(num));
+            });
+
+            // Measurements
+            const containerWidth = document.querySelector('.slot-container').offsetWidth;
+            const itemWidth = 120; // Must match CSS width
+            const targetCenterOffset = (itemWidth / 2);
+            
+            // Random Jitter (-40px to +40px) so it doesn't land perfectly centered visually every time
+            const randomJitter = (Math.random() * 80) - 40; 
+            
+            const targetTranslateX = - (targetGlobalIndex * itemWidth) + (containerWidth / 2) - targetCenterOffset + randomJitter;
+
+            // Force reflow and start animation
+            void ui.slotTrack.offsetWidth;
+
+            ui.slotTrack.style.transition = 'transform 6s cubic-bezier(0.1, 0.85, 0.15, 1)'; // Slow ease out
+            ui.slotTrack.style.transform = `translateX(${targetTranslateX}px)`;
+
+            // Wait for anim to finish (~6s) + 1s to observe
+            setTimeout(() => {
+                showResults();
+            }, 7000);
+        }
+
+        function checkWin(bet, drawn) {
+            if (bet.type.startsWith('num_')) {
+                const targetNum = parseInt(bet.type.split('_')[1]);
+                return targetNum === drawn;
+            }
+            if (bet.type === 'rot') return RED_NUMBERS.includes(drawn);
+            if (bet.type === 'schwarz') return BLACK_NUMBERS.includes(drawn);
+            if (bet.type === 'gerade') return drawn !== 0 && drawn % 2 === 0;
+            if (bet.type === 'ungerade') return drawn !== 0 && drawn % 2 !== 0;
+            return false;
+        }
+
+        function showResults() {
+            phases.spin.classList.add('hidden');
+            phases.result.classList.remove('hidden');
+
+            const classColor = getColorClass(winningNumber);
+            ui.winNumDisplay.className = `mx-auto w-48 h-48 rounded-full flex flex-col items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.2)] border-[8px] border-yellow-500 text-white relative ${classColor}`;
+            ui.winNumText.textContent = winningNumber;
+            ui.winColorText.textContent = getColorText(winningNumber);
+
+            // Animate Header
+            setTimeout(() => {
+                ui.resultHeader.classList.remove('scale-95', 'opacity-0');
+                ui.resultHeader.classList.add('scale-100', 'opacity-100');
+            }, 100);
+
+            ui.resultsTBody.innerHTML = '';
+            
+            let casinoProfit = 0;
+
+            currentBets.forEach(bet => {
+                const isWinner = checkWin(bet, winningNumber);
+                const payout = isWinner ? bet.amount * bet.typeConf.multiplier : 0;
+                
+                if(isWinner) {
+                    casinoProfit -= (payout - bet.amount); // Bank pays out winnings
+                } else {
+                    casinoProfit += bet.amount;            // Bank keeps bet
+                }
+                
+                const tr = document.createElement('tr');
+                if(isWinner) {
+                    tr.className = 'bg-[#10b981]/10 border-l-4 border-l-[#10b981] transition-all hover:bg-white/[0.02]';
+                } else {
+                    tr.className = 'bg-[#0a0c10] border-l-4 border-l-[#2d313a] opacity-70 transition-all hover:opacity-100 hover:bg-white/[0.02]';
+                }
+                
+                tr.innerHTML = `
+                    <td class="px-6 py-4 text-sm font-semibold text-white">${bet.name}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="${bet.typeConf.badgeClass}">
+                            ${bet.typeConf.label}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right font-mono text-gray-400">
+                        ${formatCurrency(bet.amount)}
+                    </td>
+                    <td class="px-6 py-4 text-right font-mono text-lg font-bold ${isWinner ? 'text-[#10b981]' : 'text-gray-600'}">
+                        ${isWinner ? '+ ' + formatCurrency(payout) : 'Verloren'}
+                    </td>
+                `;
+                ui.resultsTBody.appendChild(tr);
+            });
+
+            // Update Bank Status
+            ui.bankResult.textContent = `Bank Bilanz der Runde: ${casinoProfit > 0 ? '+' : ''}${formatCurrency(casinoProfit)}`;
+            if (casinoProfit > 0) {
+                ui.bankResult.className = 'font-mono font-bold px-3 py-1 bg-[#10b981]/20 rounded border border-[#10b981]/30 text-[#10b981] text-sm tracking-wide';
+            } else if (casinoProfit < 0) {
+                ui.bankResult.className = 'font-mono font-bold px-3 py-1 bg-[#ef4444]/20 rounded border border-[#ef4444]/30 text-[#ef4444] text-sm tracking-wide';
+            } else {
+                ui.bankResult.className = 'font-mono font-bold px-3 py-1 bg-[#11141b] rounded text-sm text-gray-300 border border-[#2d313a] tracking-wide';
+            }
+
+            isSpinning = false;
+        }
+
+        function resetRound() {
+            currentBets = [];
+            winningNumber = null;
+            renderBets();
+            phases.result.classList.add('hidden');
+            phases.betting.classList.remove('hidden');
+            
+            // Safe manual remove hidden
+            document.getElementById('betting-phase').classList.remove('hidden');
+
+            // Clean inputs for new round
+            inputs.name.value = '';
+            inputs.amount.value = '';
+            inputs.type.selectedIndex = 0;
+            inputs.name.focus();
+        }
+
+        // --- Event Listeners ---
+        inputs.addBtn.addEventListener('click', addBet);
+        ui.startBtn.addEventListener('click', startRoulette);
+        ui.newRoundBtn.addEventListener('click', resetRound);
+        
+        // Quality of life: Enter key navigation
+        inputs.name.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                inputs.amount.focus();
+            }
+        });
+        inputs.amount.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                inputs.type.focus();
+            }
+        });
+        inputs.type.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addBet();
+            }
+        });
+
+        // --- Start App ---
+        initForm();
+        renderBets();
+        inputs.name.focus();
+    </script>
+</body>
+</html>
